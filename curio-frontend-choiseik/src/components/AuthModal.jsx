@@ -1,7 +1,7 @@
 // src/components/AuthModal.jsx
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-// import apiClient from '../api/client'; // 백엔드 연결 전이므로 일단 주석 유지
+import { authApi } from '../api/auth';
 
 function AuthModal({ isOpen, onClose }) {
   const navigate = useNavigate();
@@ -22,38 +22,28 @@ function AuthModal({ isOpen, onClose }) {
     e.preventDefault();
     setErrorMessage('');
 
-    // --- [테스트를 위한 Mock 로직 시작] ---
-    console.log("Mock Auth Success!");
-    localStorage.setItem('curio_access_token', 'mock_access_token');
-    localStorage.setItem('curio_refresh_token', 'mock_refresh_token');
-
-    onClose();
-    navigate('/onboarding');
-    return; 
-    // --- [테스트를 위한 Mock 로직 끝] ---
-
-    /* // 백엔드 완성 후 사용할 실제 코드
     try {
-      const url = mode === 'login' ? '/api/auth/login' : '/api/auth/register';
-      const body = mode === 'login' ? { email, password } : { email, password, name };
-      
-      const response = await apiClient.post(url, body);
-      const { access_token, refresh_token, user } = response.data.data;
+      let data;
+      if (mode === 'login') {
+        data = await authApi.login(email, password);
+      } else {
+        data = await authApi.register(email, password, name);
+      }
 
+      const { access_token, refresh_token, user } = data.data;
       localStorage.setItem('curio_access_token', access_token);
       localStorage.setItem('curio_refresh_token', refresh_token);
 
       onClose();
-      if (user && !user.is_onboarded) {
+      if (!user.is_onboarded) {
         navigate('/onboarding');
       } else {
         navigate('/feed');
       }
     } catch (error) {
-      const errorDetail = error.response?.data?.error?.detail || '오류가 발생했습니다.';
+      const errorDetail = error.response?.data?.detail || error.response?.data?.message || '오류가 발생했습니다.';
       setErrorMessage(errorDetail);
     }
-    */
   };
 
   return (

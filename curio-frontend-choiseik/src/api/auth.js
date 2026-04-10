@@ -19,7 +19,13 @@ export const authApi = {
 
   // 비밀번호 재설정 이메일 요청
   requestPasswordReset: async (email) => {
-    const response = await apiClient.post('/api/auth/forgot-password', { email });
+    const response = await apiClient.post('/api/auth/password/forgot', { email });
+    return response.data;
+  },
+
+  // 비밀번호 재설정 완료
+  resetPassword: async (token, newPassword) => {
+    const response = await apiClient.post('/api/auth/password/reset', { token, new_password: newPassword });
     return response.data;
   },
 

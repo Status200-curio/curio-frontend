@@ -1,9 +1,9 @@
 // src/api/client.js
 import axios from 'axios';
 
-// API 명세서에 명시된 Base URL (FastAPI 백엔드 개발 환경)
+// Vite 프록시를 통해 /api/* 요청이 백엔드(localhost:8000)로 전달됩니다
 const apiClient = axios.create({
-  baseURL: 'http://localhost:8000',
+  baseURL: '',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -31,7 +31,7 @@ apiClient.interceptors.response.use(
 
       if (refreshToken) {
         try {
-          const res = await axios.post('http://localhost:8000/api/auth/refresh', {
+          const res = await axios.post('/api/auth/refresh', {
             refresh_token: refreshToken,
           });
           
