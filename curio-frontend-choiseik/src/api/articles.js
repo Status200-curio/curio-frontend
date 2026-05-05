@@ -73,4 +73,10 @@ export const articlesApi = {
     const response = await apiClient.delete('/api/search/recent');
     return response.data;
   },
+
+  // 12. 카테고리 목록
+  getCategories: async () => {
+    const response = await apiClient.get('/api/news/categories');
+    return response.data;
+  },
 };

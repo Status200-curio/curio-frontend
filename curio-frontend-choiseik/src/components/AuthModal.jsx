@@ -17,6 +17,19 @@ function AuthModal({ isOpen, onClose }) {
 
   if (!isOpen) return null;
 
+  // Google 로그인 핸들러
+  const handleGoogleLogin = () => {
+    const params = new URLSearchParams({
+      client_id: '738331615347-5t6nrrl5qebndperpmkpgng10pp4go38.apps.googleusercontent.com',
+      redirect_uri: 'http://localhost:8000/api/auth/google/callback',
+      response_type: 'code',
+      scope: 'email profile',
+      access_type: 'offline',
+      prompt: 'select_account',
+    });
+    window.location.href = `https://accounts.google.com/o/oauth2/auth?${params}`;
+  };
+
   // 폼 제출 핸들러
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -64,7 +77,7 @@ function AuthModal({ isOpen, onClose }) {
         {/* [모드 1] 소셜 및 이메일 선택 화면 */}
         {mode === 'select' && (
           <div className="space-y-3">
-            <button className="w-full py-4 bg-white border border-slate-200 text-slate-700 rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-slate-50 transition shadow-sm">
+            <button onClick={handleGoogleLogin} className="w-full py-4 bg-white border border-slate-200 text-slate-700 rounded-2xl font-bold flex items-center justify-center gap-3 hover:bg-slate-50 transition shadow-sm">
               <span className="text-xl">G</span> Google로 계속하기
             </button>
             <div className="relative py-4 text-center">

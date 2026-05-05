@@ -7,6 +7,7 @@ import MyPage from './pages/MyPage';
 import SearchPage from './pages/SearchPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
+import AuthCallbackPage from './pages/AuthCallbackPage';
 
 function App() {
   return (
@@ -21,6 +22,9 @@ function App() {
         <Route path="/search" element={<SearchPage />} />
         <Route path="/mypage" element={<MyPage />} />
         
+        {/* Google OAuth 콜백 */}
+        <Route path="/auth/callback" element={<AuthCallbackPage />} />
+
         {/* 비밀번호 재설정 관련 */}
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
