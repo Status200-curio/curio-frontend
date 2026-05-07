@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: curio-postgres
+    environment:
+      POSTGRES_USER: curio
+      POSTGRES_PASSWORD: curio1234
+      POSTGRES_DB: curiodb
+    ports:
+      - "5432:5432"
+    volumes:
+      - curio-postgres-data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    container_name: curio-redis
+    ports:
+      - "6379:6379"
+
+volumes:
+  curio-postgres-data:
