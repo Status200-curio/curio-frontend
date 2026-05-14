@@ -1,5 +1,6 @@
 // src/App.jsx
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { ThemeProvider } from './context/ThemeContext';
 import LandingPage from './pages/LandingPage';
 import OnboardingPage from './pages/OnboardingPage';
 import FeedPage from './pages/FeedPage';
@@ -11,25 +12,27 @@ import AuthCallbackPage from './pages/AuthCallbackPage';
 
 function App() {
   return (
-    <Router>
-      <Routes>
-        {/* 시작 화면 및 인증 */}
-        <Route path="/" element={<LandingPage />} />
-        
-        {/* 온보딩 및 메인 서비스 */}
-        <Route path="/onboarding" element={<OnboardingPage />} />
-        <Route path="/feed" element={<FeedPage />} />
-        <Route path="/search" element={<SearchPage />} />
-        <Route path="/mypage" element={<MyPage />} />
-        
-        {/* Google OAuth 콜백 */}
-        <Route path="/auth/callback" element={<AuthCallbackPage />} />
+    <ThemeProvider>
+      <Router>
+        <Routes>
+          {/* 시작 화면 및 인증 */}
+          <Route path="/" element={<LandingPage />} />
 
-        {/* 비밀번호 재설정 관련 */}
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/reset-password" element={<ResetPasswordPage />} />
-      </Routes>
-    </Router>
+          {/* 온보딩 및 메인 서비스 */}
+          <Route path="/onboarding" element={<OnboardingPage />} />
+          <Route path="/feed" element={<FeedPage />} />
+          <Route path="/search" element={<SearchPage />} />
+          <Route path="/mypage" element={<MyPage />} />
+
+          {/* Google OAuth 콜백 */}
+          <Route path="/auth/callback" element={<AuthCallbackPage />} />
+
+          {/* 비밀번호 재설정 관련 */}
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+        </Routes>
+      </Router>
+    </ThemeProvider>
   );
 }
 
