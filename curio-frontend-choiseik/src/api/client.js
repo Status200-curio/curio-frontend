@@ -1,9 +1,9 @@
 // src/api/client.js
 import axios from 'axios';
 
-// 배포 환경: VITE_API_BASE_URL 환경변수 사용 (없으면 빈 문자열 → Vite 프록시)
+// Vite 프록시를 통해 /api/* 요청이 백엔드(localhost:8000)로 전달됩니다
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '',
+  baseURL: '',
   headers: {
     'Content-Type': 'application/json',
   },

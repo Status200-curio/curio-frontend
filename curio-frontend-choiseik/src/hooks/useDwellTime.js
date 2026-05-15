@@ -1,110 +1,53 @@
 // src/hooks/useDwellTime.js
 import { useRef, useEffect } from 'react';
 
-const MIN_SECONDS = 3;     // 3초 미만은 오탐으로 간주해 제외
-const MAX_SECONDS = 1800;  // 30분 초과는 자리비움으로 캡
-
 /**
- * setInterval(1초) 기반 체류 시간 측정 훅.
- *
- * ─ 측정 방식: 1초마다 카운터를 증가 → ms 오차 없이 정수 초 누적
- * ─ 탭 전환: visibilitychange hidden → interval 정지, visible → 재개
- * ─ 창 강제 종료: beforeunload → sendBeacon(keepalive) 로 즉시 전송
- * ─ 모달 닫힘: useEffect cleanup → 남은 시간 전송
+ * 컴포넌트가 렌더링되어 있는 동안의 '실제 활성 체류 시간'을 측정하는 커스텀 훅
+ * @param {Function} onUnmount - 컴포넌트가 닫힐 때 체류 시간(초)을 전달받아 실행할 콜백 함수
  */
-export function useDwellTime(articleId) {
-  const secondsRef    = useRef(0);    // 누적 초 카운터
-  const intervalRef   = useRef(null); // setInterval ID
-  const articleIdRef  = useRef(null); // cleanup 클로저에서 최신 articleId 접근
+export function useDwellTime(onUnmount) {
+  const totalDwellTime = useRef(0); // 총 누적 체류 시간 (밀리초)
+  const startTime = useRef(Date.now()); // 현재 활성 세션의 시작 시간
+  const isTracking = useRef(true); // 현재 추적 중인지 여부
 
   useEffect(() => {
-    if (!articleId) return;
-
-    // 새 기사 → 카운터 초기화
-    secondsRef.current   = 0;
-    articleIdRef.current = articleId;
-
-    // ── 인터벌 시작/정지 헬퍼 ──────────────────────────────
-    const startInterval = () => {
-      if (intervalRef.current) return; // 중복 방지
-      intervalRef.current = setInterval(() => {
-        secondsRef.current += 1;
-      }, 1000);
-    };
-
-    const stopInterval = () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    };
-
-    // 탭이 이미 숨겨진 상태로 열릴 수도 있으므로 체크
-    if (!document.hidden) {
-      startInterval();
-    }
-
-    // ── 탭 전환 / 창 최소화 처리 ───────────────────────────
+    // 탭 이동, 브라우저 최소화 등을 감지하는 함수
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        stopInterval();
+        // 화면이 숨겨지면 지금까지의 시간을 누적하고 추적 중지
+        if (isTracking.current) {
+          totalDwellTime.current += Date.now() - startTime.current;
+          isTracking.current = false;
+        }
       } else {
-        startInterval();
-      }
-    };
-
-    // ── 창 강제 종료 시 즉시 전송 ──────────────────────────
-    const handleBeforeUnload = () => {
-      stopInterval();
-      const seconds = clamp(secondsRef.current);
-      if (seconds >= MIN_SECONDS) {
-        sendDwellTime(articleIdRef.current, seconds);
+        // 화면으로 다시 돌아오면 시작 시간을 갱신하고 추적 재개
+        if (!isTracking.current) {
+          startTime.current = Date.now();
+          isTracking.current = true;
+        }
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('beforeunload', handleBeforeUnload);
 
-    // ── 컴포넌트 언마운트(모달 닫힘) 시 전송 ──────────────
+    // 컴포넌트가 언마운트(닫힘) 될 때 실행
     return () => {
-      stopInterval();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-
-      const seconds = clamp(secondsRef.current);
-      if (seconds >= MIN_SECONDS) {
-        sendDwellTime(articleId, seconds);
+      
+      // 마지막으로 보고 있던 시간까지 합산
+      if (isTracking.current) {
+        totalDwellTime.current += Date.now() - startTime.current;
+      }
+      
+      // 밀리초를 초 단위로 변환하여 콜백 함수 실행 (소수점 버림)
+      const finalTimeInSeconds = Math.floor(totalDwellTime.current / 1000);
+      
+      // 체류 시간이 1초 이상일 때만 기록을 전송
+      if (finalTimeInSeconds > 0 && onUnmount) {
+        onUnmount(finalTimeInSeconds);
       }
     };
-  // articleId 바뀌면 이전 기사 전송 후 새 기사 측정 시작
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [articleId]);
-}
+  }, [onUnmount]);
 
-function clamp(seconds) {
-  return Math.min(seconds, MAX_SECONDS);
-}
-
-/**
- * fetch keepalive 로 전송.
- * keepalive:true → 창 닫힘 직후에도 브라우저가 요청을 완료시켜 줌.
- * (sendBeacon은 Authorization 헤더 미지원 → fetch 사용)
- */
-function sendDwellTime(articleId, seconds) {
-  if (!articleId) return;
-  const token = localStorage.getItem('curio_access_token');
-  // 백엔드 파라미터명: dwell_time_seconds (query parameter)
-  const url = `/api/news/${articleId}/view?dwell_time_seconds=${seconds}`;
-  try {
-    fetch(url, {
-      method: 'POST',
-      keepalive: true,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-    }).catch(() => {});
-  } catch {
-    // 동기 예외 무시
-  }
+  return null;
 }
