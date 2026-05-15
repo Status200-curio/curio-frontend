@@ -1,0 +1,246 @@
+// src/pages/SearchPage.jsx
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Search, ChevronLeft, Clock, X, ExternalLink, Loader2, BookOpen } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { articlesApi } from '../api/articles';
+
+function SearchPage() {
+  const navigate = useNavigate();
+  const [keyword, setKeyword]           = useState('');
+  const [isSearching, setIsSearching]   = useState(false);
+  const [searchResults, setSearchResults] = useState([]);
+  const [hasSearched, setHasSearched]   = useState(false);
+  const [recentSearches, setRecentSearches] = useState([]);
+  const debounceRef = useRef(null);
+
+  // 최근 검색어 로드 (localStorage)
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('curio_recent_searches') || '[]');
+      setRecentSearches(Array.isArray(saved) ? saved : []);
+    } catch {
+      setRecentSearches([]);
+    }
+  }, []);
+
+  const saveRecentSearch = (query) => {
+    if (!query.trim()) return;
+    const next = [query, ...recentSearches.filter(q => q !== query)].slice(0, 10);
+    localStorage.setItem('curio_recent_searches', JSON.stringify(next));
+    setRecentSearches(next);
+  };
+
+  const removeRecentSearch = (query) => {
+    const next = recentSearches.filter(q => q !== query);
+    localStorage.setItem('curio_recent_searches', JSON.stringify(next));
+    setRecentSearches(next);
+  };
+
+  const clearRecentSearches = () => {
+    localStorage.removeItem('curio_recent_searches');
+    setRecentSearches([]);
+  };
+
+  // 검색어 변경 → 300ms debounce 후 API 호출
+  useEffect(() => {
+    const q = keyword.trim();
+
+    if (!q) {
+      setSearchResults([]);
+      setHasSearched(false);
+      return;
+    }
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    debounceRef.current = setTimeout(async () => {
+      setIsSearching(true);
+      setHasSearched(false);
+      console.log('[SearchPage] 검색 요청:', q);
+      try {
+        const res = await articlesApi.searchArticles(q, 1);
+        console.log('[SearchPage] 검색 응답:', res);
+        const articles = res?.data?.articles ?? [];
+        setSearchResults(articles);
+        saveRecentSearch(q);
+      } catch (err) {
+        console.error('[SearchPage] 검색 실패:', err.response?.status, err.message);
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+        setHasSearched(true);
+      }
+    }, 300);
+
+    return () => clearTimeout(debounceRef.current);
+  }, [keyword]);
+
+  const handleClear = () => {
+    setKeyword('');
+    setSearchResults([]);
+    setHasSearched(false);
+  };
+
+  const handleRecentClick = (query) => {
+    setKeyword(query);
+  };
+
+  const handleArticleClick = (article) => {
+    const url = article.original_url;
+    if (url) window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans transition-colors duration-300">
+      {/* 상단 검색 헤더 */}
+      <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 sticky top-0 z-40 transition-colors duration-300">
+        <div className="max-w-2xl mx-auto px-4 h-16 flex items-center gap-3">
+          <button
+            onClick={() => navigate(-1)}
+            className="p-2 -ml-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition"
+          >
+            <ChevronLeft className="w-6 h-6" />
+          </button>
+
+          <div className="flex-1 relative flex items-center">
+            <Search className="absolute left-4 w-5 h-5 text-slate-400" />
+            <input
+              type="text"
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              placeholder="관심 있는 뉴스를 검색해보세요"
+              className="w-full bg-slate-100 dark:bg-slate-800 dark:text-slate-200 dark:placeholder-slate-500 border-none rounded-full py-3 pl-12 pr-10 text-base focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-slate-700 transition"
+              autoFocus
+            />
+            {keyword && (
+              <button
+                onClick={handleClear}
+                className="absolute right-4 p-1 bg-slate-200 dark:bg-slate-600 text-slate-500 dark:text-slate-300 rounded-full hover:bg-slate-300 dark:hover:bg-slate-500 transition"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-2xl mx-auto px-4 py-6">
+        {/* 검색어 없을 때 — 최근 검색어 */}
+        <AnimatePresence mode="wait">
+          {!keyword.trim() && (
+            <motion.section
+              key="recent"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-blue-600" />
+                  최근 검색어
+                </h3>
+                {recentSearches.length > 0 && (
+                  <button
+                    onClick={clearRecentSearches}
+                    className="text-sm font-bold text-slate-400 hover:text-red-500 transition"
+                  >
+                    전체 삭제
+                  </button>
+                )}
+              </div>
+
+              {recentSearches.length === 0 ? (
+                <div className="py-10 text-center text-slate-400 dark:text-slate-500 text-sm">
+                  최근 검색 내역이 없습니다.
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {recentSearches.map((query, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full pl-4 pr-1 py-1.5 shadow-sm hover:border-blue-300 dark:hover:border-blue-500 hover:shadow-md transition"
+                    >
+                      <button
+                        onClick={() => handleRecentClick(query)}
+                        className="text-sm font-medium text-slate-700 dark:text-slate-200 mr-2"
+                      >
+                        {query}
+                      </button>
+                      <button
+                        onClick={() => removeRecentSearch(query)}
+                        className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </motion.section>
+          )}
+
+          {/* 검색어 있을 때 — 결과 */}
+          {keyword.trim() && (
+            <motion.section
+              key="results"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <p className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-4 px-1">
+                '{keyword.trim()}' 검색 결과
+              </p>
+
+              {isSearching ? (
+                <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+                  <Loader2 className="w-8 h-8 animate-spin mb-4 text-blue-500" />
+                  <p className="text-sm">뉴스를 찾고 있습니다...</p>
+                </div>
+              ) : hasSearched && searchResults.length === 0 ? (
+                <div className="py-20 text-center text-slate-500 dark:text-slate-400 flex flex-col items-center">
+                  <BookOpen className="w-12 h-12 text-slate-200 dark:text-slate-700 mb-4" />
+                  <p className="font-bold text-lg mb-1">검색 결과가 없습니다</p>
+                  <p className="text-sm">다른 키워드로 검색해보세요.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {searchResults.map((article, idx) => (
+                    <motion.div
+                      key={article.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: idx * 0.04 }}
+                      onClick={() => handleArticleClick(article)}
+                      className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-blue-200 dark:hover:border-blue-700 cursor-pointer transition"
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="text-xs font-bold text-blue-600 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-1 rounded-md">
+                          {article.source_name}
+                        </span>
+                        <ExternalLink className="w-4 h-4 text-slate-400 shrink-0 ml-2" />
+                      </div>
+                      <h4 className="text-base font-bold text-slate-900 dark:text-white leading-snug mb-1">
+                        {article.title}
+                      </h4>
+                      {article.ai_summary && (
+                        <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 mt-2">
+                          {article.ai_summary}
+                        </p>
+                      )}
+                      <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">
+                        {article.published_at?.slice(0, 10)}
+                      </p>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </motion.section>
+          )}
+        </AnimatePresence>
+      </main>
+    </div>
+  );
+}
+
+export default SearchPage;
