@@ -1,108 +1,149 @@
 // src/components/ChatbotPanel.jsx
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, X, Bot, Loader2 } from 'lucide-react';
-import { useDwellTime } from '../hooks/useDwellTime'; // ★ 커스텀 훅 불러오기
-import { articlesApi } from '../api/articles'; // ★ API 모듈 불러오기
+import { Send, X, Bot, Loader2, AlertCircle, MessageSquare } from 'lucide-react';
+import { useDwellTime } from '../hooks/useDwellTime';
+import { articlesApi } from '../api/articles';
+
+const MAX_TURNS = 10; // 세션당 최대 대화 턴 수
 
 function ChatbotPanel({ article, onClose }) {
   const [messages, setMessages] = useState([
-    { role: 'assistant', content: `안녕하세요! "${article.title}" 기사에 대해 무엇이든 물어보세요.` }
+    {
+      role: 'assistant',
+      content: `안녕하세요! **"${article.title}"** 기사에 대해 무엇이든 물어보세요.`,
+    },
   ]);
   const [inputValue, setInputValue] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const [sessionId, setSessionId] = useState(null);
+  const [isLoading, setIsLoading]     = useState(false); // 첫 토큰 대기
+  const [isStreaming, setIsStreaming] = useState(false); // 토큰 수신 중
+  const [sessionId, setSessionId]     = useState(null);
+  const [toast, setToast]             = useState(null);  // 에러 토스트 메시지
+
   const messagesEndRef = useRef(null);
 
-  // ★ 체류 시간 측정 훅 적용: 패널이 닫힐 때 이 함수가 자동으로 실행됩니다.
-  const handleRecordDwellTime = useCallback(async (dwellTimeSeconds) => {
+  // 유저 메시지 수 = 대화 턴 수
+  const turnCount  = messages.filter(m => m.role === 'user').length;
+  const isMaxTurns = turnCount >= MAX_TURNS;
+
+  // ── 체류 시간 측정 ──────────────────────────────────────────────────────────
+  const handleRecordDwellTime = useCallback(async (seconds) => {
     try {
-      await articlesApi.recordView(article.id, dwellTimeSeconds);
-    } catch (error) {
-      console.error('체류 시간 데이터 전송 실패:', error);
+      await articlesApi.recordView(article.id, seconds);
+    } catch {
+      // 실패해도 무시
     }
   }, [article.id]);
-
-  // 커스텀 훅에 콜백 함수 전달 (컴포넌트 라이프사이클 관리)
   useDwellTime(handleRecordDwellTime);
 
-  const scrollToBottom = () => {
+  // ── 자동 스크롤 ─────────────────────────────────────────────────────────────
+  const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  }, []);
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, scrollToBottom]);
 
+  // ── 토스트 자동 닫기 (4초) ──────────────────────────────────────────────────
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
+  // ── 메시지 전송 ─────────────────────────────────────────────────────────────
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!inputValue.trim()) return;
+    const text = inputValue.trim();
+    if (!text || isLoading || isStreaming || isMaxTurns) return;
 
-    const userMessage = inputValue;
     setInputValue('');
-    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
-    setIsTyping(true);
 
-    // SSE 스트리밍으로 백엔드 챗봇 연결
+    // 유저 메시지 + 빈 어시스턴트 메시지 자리 추가
+    setMessages(prev => [
+      ...prev,
+      { role: 'user', content: text },
+      { role: 'assistant', content: '' },
+    ]);
+    setIsLoading(true);
+
     const token = localStorage.getItem('curio_access_token');
-    setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
 
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type':  'application/json',
           'Authorization': `Bearer ${token}`,
+          'Accept':        'text/event-stream',
         },
         body: JSON.stringify({
           article_id: article.id,
           session_id: sessionId,
-          message: userMessage,
+          message:    text,
         }),
       });
 
-      // 새 세션 ID는 응답 헤더에서 받거나, done 이벤트의 payload에서 처리
-      const reader = response.body.getReader();
+      if (!response.ok) {
+        throw new Error(`서버 오류 (HTTP ${response.status})`);
+      }
+
+      // 응답 헤더에서 session_id 수신
+      const newSessionId = response.headers.get('X-Session-Id');
+      if (newSessionId) setSessionId(newSessionId);
+
+      const reader  = response.body.getReader();
       const decoder = new TextDecoder();
+      let lineBuffer = ''; // 네트워크 청크가 줄 중간에 잘릴 경우 대비
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n').filter(line => line.trim());
+        lineBuffer += decoder.decode(value, { stream: true });
+
+        // 완전한 줄만 처리, 나머지는 버퍼에 유지
+        const lines = lineBuffer.split('\n');
+        lineBuffer  = lines.pop() ?? '';
 
         for (const line of lines) {
-          if (!line.startsWith('data:')) continue;
-          const raw = line.slice(5).trim();
-          try {
-            const parsed = JSON.parse(raw);
-            if (parsed.type === 'token') {
-              setMessages(prev => {
-                const newMessages = [...prev];
-                const lastMsg = { ...newMessages[newMessages.length - 1] };
-                lastMsg.content += parsed.content;
-                newMessages[newMessages.length - 1] = lastMsg;
-                return newMessages;
-              });
-            } else if (parsed.type === 'done') {
-              if (parsed.session_id) setSessionId(parsed.session_id);
-            } else if (parsed.type === 'error') {
-              throw new Error(parsed.message);
-            }
-          } catch {
-            // JSON 파싱 실패 시 무시
+          const trimmed = line.trim();
+          if (!trimmed.startsWith('data:')) continue;
+
+          const raw = trimmed.slice(5).trim();
+          // [DONE] 또는 빈 값이면 스트리밍 종료
+          if (!raw || raw === '[DONE]') {
+            setIsStreaming(false);
+            continue;
           }
+
+          // 토큰 텍스트를 메시지에 누적
+          setIsLoading(false);
+          setIsStreaming(true);
+          setMessages(prev => {
+            const updated = [...prev];
+            const last    = { ...updated[updated.length - 1] };
+            last.content += raw;
+            updated[updated.length - 1] = last;
+            return updated;
+          });
         }
       }
-    } catch (error) {
+    } catch (err) {
+      console.error('[ChatbotPanel] 오류:', err.message);
+      setToast('AI 서비스에 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+
+      // 내용 없는 어시스턴트 자리 제거
       setMessages(prev => {
-        const newMessages = [...prev];
-        newMessages[newMessages.length - 1] = { role: 'assistant', content: '오류가 발생했습니다. 다시 시도해주세요.' };
-        return newMessages;
+        const last = prev[prev.length - 1];
+        if (last?.role === 'assistant' && !last.content) {
+          return prev.slice(0, -1);
+        }
+        return prev;
       });
-      console.error('챗봇 API 오류:', error);
     } finally {
-      setIsTyping(false);
+      setIsLoading(false);
+      setIsStreaming(false);
     }
   };
 
@@ -110,8 +151,10 @@ function ChatbotPanel({ article, onClose }) {
 
   return (
     <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex justify-end">
-      <div className="bg-white dark:bg-slate-900 w-full max-w-md h-full shadow-2xl flex flex-col animate-slide-left transition-colors duration-300">
-        <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900 shrink-0">
+      <div className="bg-white dark:bg-slate-900 w-full max-w-md h-full shadow-2xl flex flex-col transition-colors duration-300">
+
+        {/* ── 헤더 ─────────────────────────────────────────────────────────── */}
+        <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/40 text-blue-600 rounded-full flex items-center justify-center">
               <Bot className="w-6 h-6" />
@@ -121,52 +164,98 @@ function ChatbotPanel({ article, onClose }) {
               <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1">{article.title}</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-2 rounded-full hover:bg-slate-50 dark:hover:bg-slate-800 transition">
-            <X className="w-6 h-6" />
-          </button>
+
+          <div className="flex items-center gap-3">
+            {/* 턴 카운터 */}
+            <div className="flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500">
+              <MessageSquare className="w-3.5 h-3.5" />
+              <span>{turnCount}/{MAX_TURNS}</span>
+            </div>
+            <button
+              onClick={onClose}
+              className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 p-2 rounded-full hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-5 space-y-6 bg-slate-50 dark:bg-slate-950">
-          {messages.map((msg, idx) => (
-            <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[85%] p-4 ${
-                msg.role === 'user'
-                  ? 'bg-blue-600 text-white rounded-2xl rounded-tr-sm shadow-md shadow-blue-200 dark:shadow-blue-900/50'
-                  : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-2xl rounded-tl-sm shadow-sm'
-              }`}>
-                <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+        {/* ── 에러 토스트 ──────────────────────────────────────────────────── */}
+        {toast && (
+          <div className="mx-4 mt-3 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-xl flex items-start gap-2 text-sm text-red-700 dark:text-red-400 animate-fade-in">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>{toast}</span>
+          </div>
+        )}
+
+        {/* ── 메시지 목록 ──────────────────────────────────────────────────── */}
+        <div className="flex-1 overflow-y-auto p-5 space-y-4 bg-slate-50 dark:bg-slate-950">
+          {messages.map((msg, idx) => {
+            const isLast      = idx === messages.length - 1;
+            const isEmptyBot  = msg.role === 'assistant' && !msg.content;
+
+            if (isEmptyBot && isLoading) {
+              // 첫 토큰 대기 중 — 로딩 버블
+              return (
+                <div key={idx} className="flex justify-start">
+                  <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm flex items-center gap-2 text-slate-400">
+                    <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
+                    <span className="text-sm">답변을 생성하고 있습니다...</span>
+                  </div>
+                </div>
+              );
+            }
+
+            if (!msg.content) return null; // 내용 없는 빈 버블 숨김
+
+            return (
+              <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[85%] px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${
+                  msg.role === 'user'
+                    ? 'bg-blue-600 text-white rounded-2xl rounded-tr-sm shadow-md shadow-blue-200 dark:shadow-blue-900/40'
+                    : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-2xl rounded-tl-sm shadow-sm'
+                }`}>
+                  {msg.content}
+                  {/* 스트리밍 커서 */}
+                  {isStreaming && isLast && msg.role === 'assistant' && (
+                    <span className="inline-block w-0.5 h-3.5 bg-slate-400 dark:bg-slate-500 animate-pulse ml-0.5 align-middle" />
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
-          {isTyping && (
-            <div className="flex justify-start">
-              <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl rounded-tl-sm p-4 shadow-sm flex items-center gap-2 text-slate-400">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span className="text-sm">답변을 생성하고 있습니다...</span>
-              </div>
-            </div>
-          )}
+            );
+          })}
           <div ref={messagesEndRef} />
         </div>
 
+        {/* ── 입력창 ───────────────────────────────────────────────────────── */}
         <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 shrink-0">
-          <form onSubmit={handleSendMessage} className="flex items-center gap-2">
-            <input
-              type="text"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              disabled={isTyping}
-              placeholder="기사에 대해 질문해보세요"
-              className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full px-5 py-3 text-sm dark:text-slate-200 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100 dark:disabled:bg-slate-800/50 transition"
-            />
-            <button
-              type="submit"
-              disabled={!inputValue.trim() || isTyping}
-              className="p-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 disabled:cursor-not-allowed transition shadow-md shadow-blue-200 dark:shadow-blue-900/50"
-            >
-              <Send className="w-5 h-5" />
-            </button>
-          </form>
+          {isMaxTurns ? (
+            <div className="text-center text-sm text-slate-500 dark:text-slate-400 py-2">
+              최대 대화 횟수({MAX_TURNS}턴)에 도달했습니다. 새 기사에서 새 대화를 시작해보세요.
+            </div>
+          ) : (
+            <form onSubmit={handleSendMessage} className="flex items-center gap-2">
+              <input
+                type="text"
+                value={inputValue}
+                onChange={e => setInputValue(e.target.value)}
+                disabled={isLoading || isStreaming}
+                placeholder="기사에 대해 질문해보세요"
+                className="flex-1 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full px-5 py-3 text-sm dark:text-slate-200 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60 transition"
+                autoFocus
+              />
+              <button
+                type="submit"
+                disabled={!inputValue.trim() || isLoading || isStreaming}
+                className="p-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 disabled:bg-slate-300 dark:disabled:bg-slate-700 disabled:cursor-not-allowed transition shadow-md shadow-blue-200 dark:shadow-blue-900/50"
+              >
+                {isLoading || isStreaming
+                  ? <Loader2 className="w-5 h-5 animate-spin" />
+                  : <Send className="w-5 h-5" />
+                }
+              </button>
+            </form>
+          )}
         </div>
       </div>
     </div>
