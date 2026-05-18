@@ -2,8 +2,11 @@
 import { useEffect } from 'react';
 import { X, ExternalLink, Headphones, Pause } from 'lucide-react';
 import { DEFAULT_IMAGE } from '../api/articles';
+import { useDwellTime } from '../hooks/useDwellTime';
 
 export default function ArticleModal({ article, onClose, onListen, isPlayingThis }) {
+  useDwellTime(article?.id);
+
   // ESC 키로 닫기
   useEffect(() => {
     const handleKey = (e) => { if (e.key === 'Escape') onClose(); };
