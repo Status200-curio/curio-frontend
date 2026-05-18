@@ -94,7 +94,8 @@ function sendDwellTime(articleId, seconds) {
   if (!articleId) return;
   const token = localStorage.getItem('curio_access_token');
   // 백엔드 파라미터명: dwell_time_seconds (query parameter)
-  const url = `/api/news/${articleId}/view?dwell_time_seconds=${seconds}`;
+  const baseUrl = import.meta.env.VITE_API_URL || '';
+  const url = `${baseUrl}/api/news/${articleId}/view?dwell_time_seconds=${seconds}`;
   try {
     fetch(url, {
       method: 'POST',
