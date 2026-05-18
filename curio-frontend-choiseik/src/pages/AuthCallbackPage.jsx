@@ -17,7 +17,7 @@ function AuthCallbackPage() {
     const error = params.get('error');
 
     if (error || !accessToken) {
-      navigate(`/?auth_error=${error || 'no_token'}`);
+      navigate('/');
       return;
     }
 
