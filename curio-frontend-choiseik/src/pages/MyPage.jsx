@@ -864,15 +864,19 @@ function DigestSettingsModal({ isDarkMode, isOpen, onClose, frequency, time, onS
             <h4 className="text-lg font-bold mb-6">발송 시간</h4>
             <select value={tempTime} onChange={e => setTempTime(e.target.value)} className={`w-full p-4 rounded-xl border-2 font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none ${isDarkMode ? 'bg-slate-600 border-slate-500 text-white' : 'bg-white border-slate-100 text-slate-700'}`}>
               <optgroup label="오전">
-                <option value="06:00">06:00</option>
-                <option value="07:00">07:00</option>
-                <option value="08:00">08:00 (추천)</option>
-                <option value="09:00">09:00</option>
+                {['06','07','08','09','10','11'].flatMap(h => [
+                  <option key={`${h}:00`} value={`${h}:00`}>{`오전 ${parseInt(h)}:00`}{h === '08' ? ' (추천)' : ''}</option>,
+                  <option key={`${h}:30`} value={`${h}:30`}>{`오전 ${parseInt(h)}:30`}</option>,
+                ])}
               </optgroup>
               <optgroup label="오후">
-                <option value="18:00">18:00</option>
-                <option value="19:00">19:00</option>
-                <option value="20:00">20:00</option>
+                {['12','13','14','15','16','17','18','19','20','21','22','23'].flatMap(h => {
+                  const label = parseInt(h) >= 13 ? `오후 ${parseInt(h)-12}` : '오후 12';
+                  return [
+                    <option key={`${h}:00`} value={`${h}:00`}>{`${label}:00`}</option>,
+                    <option key={`${h}:30`} value={`${h}:30`}>{`${label}:30`}</option>,
+                  ];
+                })}
               </optgroup>
             </select>
           </div>
