@@ -862,7 +862,7 @@ function DigestSettingsModal({ isDarkMode, isOpen, onClose, frequency, time, onS
           </div>
           <div className={`${isDarkMode ? 'bg-slate-700/50 border-slate-600' : 'bg-slate-50 border-slate-100'} p-8 rounded-3xl border`}>
             <h4 className="text-lg font-bold mb-6">발송 시간</h4>
-            <select value={tempTime} onChange={e => setTempTime(e.target.value)} className={`w-full p-4 rounded-xl border-2 font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white ${isDarkMode ? 'bg-slate-600 border-slate-500 text-white' : 'border-slate-100 text-slate-700'}`}>
+            <select value={tempTime} onChange={e => setTempTime(e.target.value)} className={`w-full p-4 rounded-xl border-2 font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none ${isDarkMode ? 'bg-slate-600 border-slate-500 text-white' : 'bg-white border-slate-100 text-slate-700'}`}>
               <optgroup label="오전">
                 <option value="06:00">06:00</option>
                 <option value="07:00">07:00</option>
