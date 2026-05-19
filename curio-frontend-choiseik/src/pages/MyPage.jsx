@@ -862,21 +862,19 @@ function DigestSettingsModal({ isDarkMode, isOpen, onClose, frequency, time, onS
           </div>
           <div className={`${isDarkMode ? 'bg-slate-700/50 border-slate-600' : 'bg-slate-50 border-slate-100'} p-8 rounded-3xl border`}>
             <h4 className="text-lg font-bold mb-6">발송 시간</h4>
-            <div className="space-y-4">
-              <label className="block text-sm font-bold text-slate-400 ml-1">오전</label>
-              <select value={tempTime} onChange={e => setTempTime(e.target.value)} className={`w-full p-4 rounded-xl border-2 font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white ${isDarkMode ? 'bg-slate-600 border-slate-500 text-white' : 'border-slate-100 text-slate-700'}`}>
+            <select value={tempTime} onChange={e => setTempTime(e.target.value)} className={`w-full p-4 rounded-xl border-2 font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white ${isDarkMode ? 'bg-slate-600 border-slate-500 text-white' : 'border-slate-100 text-slate-700'}`}>
+              <optgroup label="오전">
                 <option value="06:00">06:00</option>
                 <option value="07:00">07:00</option>
                 <option value="08:00">08:00 (추천)</option>
                 <option value="09:00">09:00</option>
-              </select>
-              <label className="block text-sm font-bold text-slate-400 ml-1 mt-4">오후</label>
-              <select value={tempTime} onChange={e => setTempTime(e.target.value)} className={`w-full p-4 rounded-xl border-2 font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none bg-white ${isDarkMode ? 'bg-slate-600 border-slate-500 text-white' : 'border-slate-100 text-slate-700'}`}>
+              </optgroup>
+              <optgroup label="오후">
                 <option value="18:00">18:00</option>
                 <option value="19:00">19:00</option>
                 <option value="20:00">20:00</option>
-              </select>
-            </div>
+              </optgroup>
+            </select>
           </div>
         </div>
         <div className="flex gap-4">
