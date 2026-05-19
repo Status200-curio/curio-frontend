@@ -74,21 +74,25 @@ export default function TopicRecommendations({ isDarkMode }) {
       </h2>
       <div className="space-y-4">
         {recommendations.map((rec) => {
-          const meta = TOPIC_META[rec.topic] ?? { label: rec.topic, icon: '📰' };
-          const isAdding = addingTopic === rec.topic;
-          const thumbnail = TOPIC_IMAGES[rec.article?.topic] || DEFAULT_IMAGE;
+          const topic = rec.recommended_topic ?? rec.topic;
+          const article = rec.sample_article ?? rec.article;
+          const sourceLabel = rec.based_on_topic_label ?? rec.source_label;
+          const timeStr = rec.read_time ?? rec.time_str;
+          const meta = TOPIC_META[topic] ?? { label: topic, icon: '📰' };
+          const isAdding = addingTopic === topic;
+          const thumbnail = TOPIC_IMAGES[article?.topic] || DEFAULT_IMAGE;
 
           return (
             <div
-              key={rec.topic}
+              key={topic}
               className={`rounded-2xl overflow-hidden transition-colors ${isDarkMode ? 'bg-slate-700/60' : 'bg-slate-50'}`}
             >
               {/* 읽기 컨텍스트 헤더 (읽기 기록 기반 추천일 때만) */}
-              {rec.source_label && rec.time_str && (
+              {sourceLabel && timeStr && (
                 <div className={`px-4 py-2.5 flex items-center gap-2 text-xs ${isDarkMode ? 'bg-slate-700 text-slate-300' : 'bg-slate-100 text-slate-500'}`}>
                   <Sparkles className="w-3.5 h-3.5 text-blue-500 shrink-0" />
                   <span>
-                    <span className="font-semibold">{rec.source_label}</span>을(를) {rec.time_str} 읽으셨네요 —&nbsp;
+                    <span className="font-semibold">{sourceLabel}</span>을(를) {timeStr} 읽으셨네요 —&nbsp;
                     {rec.reason}
                   </span>
                 </div>
@@ -99,7 +103,7 @@ export default function TopicRecommendations({ isDarkMode }) {
                 {/* 썸네일 */}
                 <img
                   src={thumbnail}
-                  alt={rec.article?.title ?? meta.label}
+                  alt={article?.title ?? meta.label}
                   className="w-20 h-20 rounded-xl object-cover shrink-0"
                   onError={e => { e.target.src = DEFAULT_IMAGE; }}
                 />
@@ -112,9 +116,9 @@ export default function TopicRecommendations({ isDarkMode }) {
                   </span>
 
                   {/* 기사 제목 */}
-                  {rec.article?.title ? (
+                  {article?.title ? (
                     <p className={`text-sm font-semibold leading-snug line-clamp-2 mb-3 ${isDarkMode ? 'text-white' : 'text-slate-800'}`}>
-                      {rec.article.title}
+                      {article.title}
                     </p>
                   ) : (
                     <p className={`text-sm mb-3 ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
@@ -125,13 +129,13 @@ export default function TopicRecommendations({ isDarkMode }) {
                   {/* 버튼 행 */}
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => handleGoToTopic(rec.topic)}
+                      onClick={() => handleGoToTopic(topic)}
                       disabled={isAdding}
                       className="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 text-white hover:bg-blue-700 transition disabled:opacity-60"
                     >
                       {isAdding ? '추가 중...' : `${meta.label} 보러가기`}
                     </button>
-                    {rec.article?.original_url && (
+                    {article?.original_url && (
                       <a
                         href={rec.article.original_url}
                         target="_blank"
