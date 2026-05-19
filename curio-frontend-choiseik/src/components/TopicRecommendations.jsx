@@ -137,7 +137,7 @@ export default function TopicRecommendations({ isDarkMode }) {
                     </button>
                     {article?.original_url && (
                       <a
-                        href={rec.article.original_url}
+                        href={article.original_url}
                         target="_blank"
                         rel="noopener noreferrer"
                         className={`p-1.5 rounded-lg transition ${isDarkMode ? 'text-slate-400 hover:text-blue-400' : 'text-slate-400 hover:text-blue-600'}`}
