@@ -6,11 +6,24 @@ import { articlesApi } from '../api/articles';
 
 const MAX_TURNS = 10; // 세션당 최대 대화 턴 수
 
+// 마크다운 → JSX 변환 (굵기, 줄바꿈만 처리)
+function renderMarkdown(text) {
+  return text.split('\n').map((line, i) => {
+    const parts = line.split(/(\*\*[^*]+\*\*)/g).map((part, j) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={j}>{part.slice(2, -2)}</strong>;
+      }
+      return part;
+    });
+    return <span key={i}>{parts}{i < text.split('\n').length - 1 && <br />}</span>;
+  });
+}
+
 function ChatbotPanel({ article, onClose }) {
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      content: `안녕하세요! **"${article.title}"** 기사에 대해 무엇이든 물어보세요.`,
+      content: `안녕하세요! "${article.title}" 기사에 대해 무엇이든 물어보세요.`,
     },
   ]);
   const [inputValue, setInputValue] = useState('');
@@ -215,7 +228,7 @@ function ChatbotPanel({ article, onClose }) {
                     ? 'bg-blue-600 text-white rounded-2xl rounded-tr-sm shadow-md shadow-blue-200 dark:shadow-blue-900/40'
                     : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-2xl rounded-tl-sm shadow-sm'
                 }`}>
-                  {msg.content}
+                  {msg.role === 'assistant' ? renderMarkdown(msg.content) : msg.content}
                   {/* 스트리밍 커서 */}
                   {isStreaming && isLast && msg.role === 'assistant' && (
                     <span className="inline-block w-0.5 h-3.5 bg-slate-400 dark:bg-slate-500 animate-pulse ml-0.5 align-middle" />
