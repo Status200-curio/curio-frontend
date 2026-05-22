@@ -107,6 +107,7 @@ function FeedPage() {
   const [playingArticle, setPlayingArticle] = useState(null);
   const audioRef = useRef(null);
   const audioBlobUrlRef = useRef(null);
+  const audioRequestIdRef = useRef(0); // race condition 방지: 최신 요청 ID 추적
 
   // 연속 재생용 ref (이벤트 리스너 내부에서 최신 상태 접근)
   const articlesRef = useRef([]);
@@ -154,8 +155,18 @@ function FeedPage() {
     setAudioDuration(0);
     setAudioLoading(true);
 
+    // 이 요청이 완료되기 전에 다른 기사가 선택되면 무시
+    const requestId = ++audioRequestIdRef.current;
+
     try {
       const blobUrl = await articlesApi.getAudio(article.id);
+
+      // 더 최신 요청이 있으면 이 결과는 버림 (race condition 방지)
+      if (requestId !== audioRequestIdRef.current) {
+        URL.revokeObjectURL(blobUrl);
+        return;
+      }
+
       audioBlobUrlRef.current = blobUrl;
 
       const audio = new Audio(blobUrl);

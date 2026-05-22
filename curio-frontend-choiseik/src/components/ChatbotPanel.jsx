@@ -1,5 +1,5 @@
 // src/components/ChatbotPanel.jsx
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react'; // useCallback: scrollToBottom에서 사용
 import { Send, X, Bot, Loader2, AlertCircle, MessageSquare } from 'lucide-react';
 import { useDwellTime } from '../hooks/useDwellTime';
 import { articlesApi } from '../api/articles';
@@ -38,15 +38,8 @@ function ChatbotPanel({ article, onClose }) {
   const turnCount  = messages.filter(m => m.role === 'user').length;
   const isMaxTurns = turnCount >= MAX_TURNS;
 
-  // ── 체류 시간 측정 ──────────────────────────────────────────────────────────
-  const handleRecordDwellTime = useCallback(async (seconds) => {
-    try {
-      await articlesApi.recordView(article.id, seconds);
-    } catch {
-      // 실패해도 무시
-    }
-  }, [article.id]);
-  useDwellTime(handleRecordDwellTime);
+  // ── 체류 시간 측정 (article.id를 전달해야 함 — 함수 아님)
+  useDwellTime(article?.id);
 
   // ── 자동 스크롤 ─────────────────────────────────────────────────────────────
   const scrollToBottom = useCallback(() => {
