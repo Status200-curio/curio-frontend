@@ -1,20 +1,31 @@
 // src/pages/SearchPage.jsx
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, ChevronLeft, Clock, X, ExternalLink, Loader2, BookOpen } from 'lucide-react';
+import { Search, ChevronLeft, Clock, X, Loader2, BookOpen, Bookmark } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { articlesApi } from '../api/articles';
+import { DEFAULT_IMAGE } from '../api/articles';
+import ArticleModal from '../components/ArticleModal';
+import { useTheme } from '../context/ThemeContext';
+
+const TOPIC_LABELS = {
+  ai: 'AI/기술', economy: '경제', sports: '스포츠', culture: '문화',
+  politics: '정치', science: '과학', health: '건강', world: '국제',
+  society: '사회', entertain: '연예',
+};
 
 function SearchPage() {
   const navigate = useNavigate();
-  const [keyword, setKeyword]           = useState('');
-  const [isSearching, setIsSearching]   = useState(false);
+  const { isDarkMode } = useTheme();
+  const [keyword, setKeyword]             = useState('');
+  const [isSearching, setIsSearching]     = useState(false);
   const [searchResults, setSearchResults] = useState([]);
-  const [hasSearched, setHasSearched]   = useState(false);
+  const [hasSearched, setHasSearched]     = useState(false);
   const [recentSearches, setRecentSearches] = useState([]);
+  const [selectedArticle, setSelectedArticle] = useState(null);
   const debounceRef = useRef(null);
 
-  // 최근 검색어 로드 (localStorage)
+  // 최근 검색어 로드
   useEffect(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('curio_recent_searches') || '[]');
@@ -42,27 +53,21 @@ function SearchPage() {
     setRecentSearches([]);
   };
 
-  // 검색어 변경 → 300ms debounce 후 API 호출
+  // 검색어 변경 → 300ms debounce
   useEffect(() => {
     const q = keyword.trim();
-
     if (!q) {
       setSearchResults([]);
       setHasSearched(false);
       return;
     }
-
     if (debounceRef.current) clearTimeout(debounceRef.current);
-
     debounceRef.current = setTimeout(async () => {
       setIsSearching(true);
       setHasSearched(false);
-      console.log('[SearchPage] 검색 요청:', q);
       try {
         const res = await articlesApi.searchArticles(q, 1);
-        console.log('[SearchPage] 검색 응답:', res);
-        const articles = res?.data?.articles ?? [];
-        setSearchResults(articles);
+        setSearchResults(res?.data?.articles ?? []);
         saveRecentSearch(q);
       } catch (err) {
         console.error('[SearchPage] 검색 실패:', err.response?.status, err.message);
@@ -72,7 +77,6 @@ function SearchPage() {
         setHasSearched(true);
       }
     }, 300);
-
     return () => clearTimeout(debounceRef.current);
   }, [keyword]);
 
@@ -82,13 +86,16 @@ function SearchPage() {
     setHasSearched(false);
   };
 
-  const handleRecentClick = (query) => {
-    setKeyword(query);
-  };
-
-  const handleArticleClick = (article) => {
-    const url = article.original_url;
-    if (url) window.open(url, '_blank', 'noopener,noreferrer');
+  const handleBookmarkToggle = async (e, article) => {
+    e.stopPropagation();
+    try {
+      await articlesApi.toggleBookmark(article.id);
+      setSearchResults(prev =>
+        prev.map(a => a.id === article.id ? { ...a, is_saved: !a.is_saved } : a)
+      );
+    } catch (err) {
+      console.error('[SearchPage] 북마크 실패:', err.message);
+    }
   };
 
   return (
@@ -102,7 +109,6 @@ function SearchPage() {
           >
             <ChevronLeft className="w-6 h-6" />
           </button>
-
           <div className="flex-1 relative flex items-center">
             <Search className="absolute left-4 w-5 h-5 text-slate-400" />
             <input
@@ -126,51 +132,29 @@ function SearchPage() {
       </header>
 
       <main className="max-w-2xl mx-auto px-4 py-6">
-        {/* 검색어 없을 때 — 최근 검색어 */}
         <AnimatePresence mode="wait">
+          {/* 검색어 없을 때 — 최근 검색어 */}
           {!keyword.trim() && (
-            <motion.section
-              key="recent"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
+            <motion.section key="recent" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
                   <Clock className="w-5 h-5 text-blue-600" />
                   최근 검색어
                 </h3>
                 {recentSearches.length > 0 && (
-                  <button
-                    onClick={clearRecentSearches}
-                    className="text-sm font-bold text-slate-400 hover:text-red-500 transition"
-                  >
+                  <button onClick={clearRecentSearches} className="text-sm font-bold text-slate-400 hover:text-red-500 transition">
                     전체 삭제
                   </button>
                 )}
               </div>
-
               {recentSearches.length === 0 ? (
-                <div className="py-10 text-center text-slate-400 dark:text-slate-500 text-sm">
-                  최근 검색 내역이 없습니다.
-                </div>
+                <div className="py-10 text-center text-slate-400 dark:text-slate-500 text-sm">최근 검색 내역이 없습니다.</div>
               ) : (
                 <div className="flex flex-wrap gap-2">
                   {recentSearches.map((query, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full pl-4 pr-1 py-1.5 shadow-sm hover:border-blue-300 dark:hover:border-blue-500 hover:shadow-md transition"
-                    >
-                      <button
-                        onClick={() => handleRecentClick(query)}
-                        className="text-sm font-medium text-slate-700 dark:text-slate-200 mr-2"
-                      >
-                        {query}
-                      </button>
-                      <button
-                        onClick={() => removeRecentSearch(query)}
-                        className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition"
-                      >
+                    <div key={idx} className="flex items-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full pl-4 pr-1 py-1.5 shadow-sm hover:border-blue-300 transition">
+                      <button onClick={() => setKeyword(query)} className="text-sm font-medium text-slate-700 dark:text-slate-200 mr-2">{query}</button>
+                      <button onClick={() => removeRecentSearch(query)} className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition">
                         <X className="w-3 h-3" />
                       </button>
                     </div>
@@ -180,14 +164,9 @@ function SearchPage() {
             </motion.section>
           )}
 
-          {/* 검색어 있을 때 — 결과 */}
+          {/* 검색 결과 */}
           {keyword.trim() && (
-            <motion.section
-              key="results"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
+            <motion.section key="results" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <p className="text-sm font-bold text-slate-500 dark:text-slate-400 mb-4 px-1">
                 '{keyword.trim()}' 검색 결과
               </p>
@@ -211,26 +190,53 @@ function SearchPage() {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: idx * 0.04 }}
-                      onClick={() => handleArticleClick(article)}
-                      className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-blue-200 dark:hover:border-blue-700 cursor-pointer transition"
+                      onClick={() => setSelectedArticle(article)}
+                      className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-blue-200 dark:hover:border-blue-700 cursor-pointer transition overflow-hidden"
                     >
-                      <div className="flex justify-between items-start mb-2">
-                        <span className="text-xs font-bold text-blue-600 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-1 rounded-md">
-                          {article.source_name}
-                        </span>
-                        <ExternalLink className="w-4 h-4 text-slate-400 shrink-0 ml-2" />
-                      </div>
-                      <h4 className="text-base font-bold text-slate-900 dark:text-white leading-snug mb-1">
-                        {article.title}
-                      </h4>
-                      {article.ai_summary && (
-                        <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 mt-2">
-                          {article.ai_summary}
+                      {/* 썸네일 */}
+                      <img
+                        src={article.thumbnail_url || DEFAULT_IMAGE}
+                        alt={article.title}
+                        className="w-full h-40 object-cover"
+                        onError={e => { e.target.src = DEFAULT_IMAGE; }}
+                      />
+
+                      <div className="p-4">
+                        {/* 카테고리 + 언론사 + 북마크 */}
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            {article.topic && (
+                              <span className="text-xs font-bold text-blue-600 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-400 px-2 py-0.5 rounded-md">
+                                {TOPIC_LABELS[article.topic] ?? article.topic}
+                              </span>
+                            )}
+                            <span className="text-xs text-slate-400 dark:text-slate-500">{article.source_name}</span>
+                          </div>
+                          <button
+                            onClick={(e) => handleBookmarkToggle(e, article)}
+                            className={`p-1.5 rounded-lg transition ${article.is_saved ? 'text-blue-600' : 'text-slate-400 hover:text-blue-500'}`}
+                          >
+                            <Bookmark className={`w-4 h-4 ${article.is_saved ? 'fill-current' : ''}`} />
+                          </button>
+                        </div>
+
+                        {/* 제목 */}
+                        <h4 className="text-base font-bold text-slate-900 dark:text-white leading-snug mb-2">
+                          {article.title}
+                        </h4>
+
+                        {/* 요약 */}
+                        {article.ai_summary && (
+                          <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 mb-2">
+                            {article.ai_summary}
+                          </p>
+                        )}
+
+                        {/* 날짜 */}
+                        <p className="text-xs text-slate-400 dark:text-slate-500">
+                          {article.published_at?.slice(0, 10)}
                         </p>
-                      )}
-                      <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">
-                        {article.published_at?.slice(0, 10)}
-                      </p>
+                      </div>
                     </motion.div>
                   ))}
                 </div>
@@ -239,6 +245,15 @@ function SearchPage() {
           )}
         </AnimatePresence>
       </main>
+
+      {/* 기사 모달 */}
+      {selectedArticle && (
+        <ArticleModal
+          article={selectedArticle}
+          onClose={() => setSelectedArticle(null)}
+          isDarkMode={isDarkMode}
+        />
+      )}
     </div>
   );
 }

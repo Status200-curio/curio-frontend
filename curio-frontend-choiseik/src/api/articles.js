@@ -48,7 +48,15 @@ export const articlesApi = {
   // 2. 실시간 기사 검색
   searchArticles: async (keyword, page = 1) => {
     const response = await apiClient.get('/api/news/search', { params: { q: keyword, page, limit: 10 } });
-    return response.data;
+    const raw = response.data?.data ?? {};
+    const articles = (raw.articles ?? []).map(a => ({
+      ...a,
+      ai_summary: a.summary ?? a.ai_summary ?? null,
+      source: { name: a.source_name, url: a.original_url },
+      thumbnail_url: a.thumbnail_url || a.image_url || TOPIC_IMAGES[a.topic] || DEFAULT_IMAGE,
+      is_saved: a.is_saved ?? false,
+    }));
+    return { data: { articles, has_next: raw.has_next ?? false } };
   },
 
   // 3. 기사 좋아요/싫어요 피드백 (feedback_type: 'like' | 'dislike' | 'cancel')
