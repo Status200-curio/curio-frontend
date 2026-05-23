@@ -50,6 +50,8 @@ function MyPage() {
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
   const [isTopicsModalOpen, setIsTopicsModalOpen] = useState(false);
   const [isDigestModalOpen, setIsDigestModalOpen] = useState(false);
+  const [customInsightPrompt, setCustomInsightPrompt] = useState('');
+  const [isSavingInsight, setIsSavingInsight] = useState(false);
   const [selectedTag, setSelectedTag] = useState('전체');
   const [selectedDate, setSelectedDate] = useState('전체');
 
@@ -133,6 +135,7 @@ function MyPage() {
           digestFrequency: pref.digest_frequency ?? 'daily',
           digestTime: pref.digest_time ?? '08:00',
         });
+        setCustomInsightPrompt(pref.custom_insight_prompt ?? '');
         // 테마 동기화는 App.jsx ThemeSyncer가 앱 시작 시 처리함 — 여기선 스킵
       }
     } catch (e) {
@@ -179,6 +182,18 @@ function MyPage() {
     } catch (e) {
       console.error('[MyPage] 관심사 저장 실패:', e.message);
       alert('저장에 실패했습니다.');
+    }
+  };
+
+  const handleSaveInsightPrompt = async () => {
+    setIsSavingInsight(true);
+    try {
+      await userApi.updatePreferences({ custom_insight_prompt: customInsightPrompt });
+    } catch (e) {
+      console.error('[MyPage] 인사이트 프롬프트 저장 실패:', e.message);
+      alert('저장에 실패했습니다.');
+    } finally {
+      setIsSavingInsight(false);
     }
   };
 
@@ -531,6 +546,31 @@ function MyPage() {
                       변경
                     </button>
                   </div>
+                  <div className="py-4 border-b border-slate-200/50">
+                    <div className="mb-3">
+                      <p className="font-bold text-lg">AI 인사이트 방향 설정</p>
+                      <p className={`text-sm ${isDarkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+                        AI가 기사를 분석할 때 적용할 관점을 직접 설정해보세요
+                      </p>
+                    </div>
+                    <textarea
+                      value={customInsightPrompt}
+                      onChange={e => setCustomInsightPrompt(e.target.value)}
+                      placeholder="예: 투자자 관점에서 분석해줘 / 초보자도 이해할 수 있게 쉽게 설명해줘"
+                      rows={3}
+                      className={`w-full p-4 rounded-xl border-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDarkMode ? 'bg-slate-700 border-slate-600 text-white placeholder-slate-400' : 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400'}`}
+                    />
+                    <div className="flex justify-end mt-2">
+                      <button
+                        onClick={handleSaveInsightPrompt}
+                        disabled={isSavingInsight}
+                        className="px-5 py-2 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition disabled:opacity-60 text-sm"
+                      >
+                        {isSavingInsight ? '저장 중...' : '저장'}
+                      </button>
+                    </div>
+                  </div>
+
                   <div className="flex items-center justify-between py-4">
                     <div>
                       <p className="font-bold text-lg">다크 모드</p>

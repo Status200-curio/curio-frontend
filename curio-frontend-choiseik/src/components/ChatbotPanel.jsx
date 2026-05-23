@@ -23,7 +23,7 @@ function ChatbotPanel({ article, onClose }) {
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      content: `안녕하세요! "${article.title}" 기사에 대해 무엇이든 물어보세요.`,
+      content: `안녕하세요! ${article.title.replace(/"/g, "'")} 기사에 대해 무엇이든 물어보세요.`,
     },
   ]);
   const [inputValue, setInputValue] = useState('');

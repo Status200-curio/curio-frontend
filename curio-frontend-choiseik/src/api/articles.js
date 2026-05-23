@@ -53,7 +53,7 @@ export const articlesApi = {
 
   // 3. 기사 좋아요/싫어요 피드백 (feedback_type: 'like' | 'dislike' | 'cancel')
   sendFeedback: async (articleId, feedbackType) => {
-    const response = await apiClient.post(`/api/news/${articleId}/feedback`, { feedback_type: feedbackType });
+    const response = await apiClient.post(`/api/news/${articleId}/feedback`, { feedback: feedbackType });
     return response.data;
   },
 
