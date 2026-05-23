@@ -129,4 +129,10 @@ export const articlesApi = {
     const response = await apiClient.get(`/api/news/${articleId}/audio`, { responseType: 'blob' });
     return URL.createObjectURL(response.data);
   },
+
+  // 14. 단일 기사 상세 조회 (뉴스레터 딥링크용)
+  getArticleById: async (id) => {
+    const response = await apiClient.get(`/api/news/${id}`);
+    return response;
+  },
 };

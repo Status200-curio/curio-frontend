@@ -11,6 +11,7 @@ import SearchPage from './pages/SearchPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import AuthCallbackPage from './pages/AuthCallbackPage';
+import ArticleDetailPage from './pages/ArticleDetailPage';
 
 /**
  * 앱 마운트 시 로그인 상태면 서버에서 다크모드 설정을 가져와 동기화합니다.
@@ -54,6 +55,9 @@ function App() {
           <Route path="/feed" element={<FeedPage />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/mypage" element={<MyPage />} />
+
+          {/* 뉴스레터 딥링크 — 기사 상세 페이지 */}
+          <Route path="/article/:id" element={<ArticleDetailPage />} />
 
           {/* Google OAuth 콜백 */}
           <Route path="/auth/callback" element={<AuthCallbackPage />} />
