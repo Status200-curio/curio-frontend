@@ -1,10 +1,13 @@
 // src/pages/LandingPage.jsx
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import AuthModal from "../components/AuthModal";
 
 function LandingPage() {
-  // 로그인/회원가입 모달 상태 관리
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [searchParams] = useSearchParams();
+  const redirectTo = searchParams.get('redirect') || null;
+  // redirect 파라미터 있으면 모달 자동 오픈
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(!!redirectTo);
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
@@ -88,6 +91,7 @@ function LandingPage() {
       <AuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
+        redirectTo={redirectTo}
       />
     </div>
   );

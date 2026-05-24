@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authApi } from '../api/auth';
 
-function AuthModal({ isOpen, onClose }) {
+function AuthModal({ isOpen, onClose, redirectTo = null }) {
   const navigate = useNavigate();
   
   // mode: 'select'(초기화면), 'login'(로그인), 'register'(회원가입)
@@ -53,6 +53,8 @@ function AuthModal({ isOpen, onClose }) {
       onClose();
       if (!user.is_onboarded) {
         navigate('/onboarding');
+      } else if (redirectTo) {
+        navigate(redirectTo);
       } else {
         navigate('/feed');
       }

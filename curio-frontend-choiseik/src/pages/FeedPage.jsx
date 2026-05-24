@@ -56,12 +56,19 @@ function FeedPage() {
     userApi.getMe()
       .then(res => {
         const topics = res?.data?.preferences?.topics ?? [];
+        const subTopics = res?.data?.preferences?.sub_topics ?? [];
         if (topics.length > 0) {
           const cats = [
             ALL_CAT,
             ...topics
               .filter(t => TOPIC_META[t])
-              .map(t => ({ id: t, ...TOPIC_META[t] })),
+              .map(t => ({
+                id: t,
+                label: TOPIC_META[t].label,
+                subs: subTopics.length > 0
+                  ? TOPIC_META[t].subs.filter(s => subTopics.includes(s))
+                  : TOPIC_META[t].subs,
+              })),
           ];
           setCategories(cats);
         }

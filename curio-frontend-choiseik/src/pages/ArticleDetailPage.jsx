@@ -18,8 +18,16 @@ export default function ArticleDetailPage() {
 
   useDwellTime(article?.id);
 
+  // 비로그인 시 로그인 페이지로 리다이렉트 (로그인 후 이 페이지로 복귀)
+  useEffect(() => {
+    if (!localStorage.getItem('curio_access_token')) {
+      navigate(`/?redirect=/article/${id}`, { replace: true });
+    }
+  }, [id, navigate]);
+
   useEffect(() => {
     if (!id) return;
+    if (!localStorage.getItem('curio_access_token')) return;
     articlesApi.getArticleById(id)
       .then(res => {
         setArticle(res.data?.article ?? res.data ?? null);
