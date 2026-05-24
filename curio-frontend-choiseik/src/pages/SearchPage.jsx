@@ -5,7 +5,6 @@ import { Search, ChevronLeft, Clock, X, Loader2, BookOpen, Bookmark } from 'luci
 import { motion, AnimatePresence } from 'framer-motion';
 import { articlesApi } from '../api/articles';
 import { DEFAULT_IMAGE } from '../api/articles';
-import ArticleModal from '../components/ArticleModal';
 import { useTheme } from '../context/ThemeContext';
 
 const TOPIC_LABELS = {
@@ -22,7 +21,6 @@ function SearchPage() {
   const [searchResults, setSearchResults] = useState([]);
   const [hasSearched, setHasSearched]     = useState(false);
   const [recentSearches, setRecentSearches] = useState([]);
-  const [selectedArticle, setSelectedArticle] = useState(null);
   const debounceRef = useRef(null);
 
   // 최근 검색어 로드
@@ -190,7 +188,7 @@ function SearchPage() {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: idx * 0.04 }}
-                      onClick={() => setSelectedArticle(article)}
+                      onClick={() => article.original_url && window.open(article.original_url, '_blank', 'noopener,noreferrer')}
                       className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md hover:border-blue-200 dark:hover:border-blue-700 cursor-pointer transition overflow-hidden"
                     >
                       {/* 썸네일 */}
@@ -225,13 +223,6 @@ function SearchPage() {
                           {article.title}
                         </h4>
 
-                        {/* 요약 */}
-                        {article.ai_summary && (
-                          <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 mb-2">
-                            {article.ai_summary}
-                          </p>
-                        )}
-
                         {/* 날짜 */}
                         <p className="text-xs text-slate-400 dark:text-slate-500">
                           {article.published_at?.slice(0, 10)}
@@ -246,14 +237,6 @@ function SearchPage() {
         </AnimatePresence>
       </main>
 
-      {/* 기사 모달 */}
-      {selectedArticle && (
-        <ArticleModal
-          article={selectedArticle}
-          onClose={() => setSelectedArticle(null)}
-          isDarkMode={isDarkMode}
-        />
-      )}
     </div>
   );
 }
