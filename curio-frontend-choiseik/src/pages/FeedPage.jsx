@@ -19,17 +19,18 @@ if (localStorage.getItem('curio_access_token')) {
 }
 
 // ── 토픽 코드 → 한글 메타 매핑 (API 명세 8.2절 카테고리 코드 기준) ──────────
+// subs: 백엔드 SUB_TOPIC_TAGS key와 동일하게 맞춤 (MyPage.SUB_TOPIC_MAP 기준)
 const TOPIC_META = {
-  ai:       { label: 'AI / 기술',     subs: ['머신러닝', '로보틱스', '반도체', '소프트웨어', '스타트업'] },
-  economy:  { label: '경제',           subs: ['주식/증권', '부동산', '암호화폐', '글로벌경제', '산업/기업'] },
-  sports:   { label: '스포츠',         subs: ['축구', '야구', '농구', '골프', '올림픽'] },
-  politics: { label: '정치',           subs: ['국내정치', '국제외교', '선거', '법/제도'] },
-  science:  { label: '과학',           subs: ['우주/천문', '생명과학', '환경', '물리학', '의학'] },
-  health:   { label: '건강',           subs: ['의학', '영양', '운동', '정신건강'] },
-  world:    { label: '세계',           subs: ['미국', '유럽', '아시아', '중동', '아프리카'] },
-  society:  { label: '사회',           subs: ['교육', '노동', '복지', '환경', '젠더'] },
-  culture:  { label: '문화',           subs: ['예술', '도서', '음식', '여행', '라이프스타일'] },
-  entertain:{ label: '엔터테인먼트',    subs: ['영화', '음악', 'TV/드라마', 'K-POP', '게임'] },
+  ai:       { label: 'AI / 기술',      subs: [{ key: 'llm', label: 'AI/머신러닝' }, { key: 'semiconductor', label: '반도체' }, { key: 'mobile', label: '스마트폰' }, { key: 'security', label: '보안' }, { key: 'startup', label: '소프트웨어/스타트업' }, { key: 'cloud', label: '클라우드' }, { key: 'internet', label: '인터넷/SNS' }, { key: 'ev', label: '전기차/자율주행' }, { key: 'game_tech', label: '게임' }] },
+  economy:  { label: '경제',            subs: [{ key: 'stock', label: '주식' }, { key: 'realestate', label: '부동산' }, { key: 'crypto', label: '암호화폐' }, { key: 'finance', label: '금융/은행' }, { key: 'trade', label: '무역/수출' }, { key: 'company', label: '기업/대기업' }, { key: 'exchange', label: '환율' }, { key: 'employment', label: '취업/고용' }] },
+  sports:   { label: '스포츠',          subs: [{ key: 'football', label: '축구' }, { key: 'baseball', label: '야구' }, { key: 'basketball', label: '농구' }, { key: 'volleyball', label: '배구' }, { key: 'tennis', label: '테니스' }, { key: 'golf', label: '골프' }, { key: 'esports', label: 'e스포츠' }, { key: 'badminton', label: '배드민턴' }, { key: 'tabletennis', label: '탁구' }, { key: 'swimming', label: '수영' }, { key: 'mma', label: '격투기/UFC' }, { key: 'motorsports', label: '모터스포츠/F1' }, { key: 'boxing', label: '복싱' }, { key: 'taekwondo', label: '태권도' }, { key: 'judo', label: '유도' }, { key: 'archery', label: '양궁' }, { key: 'fencing', label: '펜싱' }] },
+  politics: { label: '정치',            subs: [{ key: 'domestic', label: '국내정치' }, { key: 'election', label: '선거' }, { key: 'northkorea', label: '북한' }, { key: 'foreign', label: '외교' }, { key: 'policy', label: '법/정책' }, { key: 'judiciary', label: '검찰/사법' }] },
+  science:  { label: '과학',            subs: [{ key: 'space', label: '우주' }, { key: 'environment', label: '환경/기후' }, { key: 'biology', label: '생명과학' }, { key: 'physics', label: '물리/화학' }, { key: 'medicine', label: '의학연구' }, { key: 'math', label: '수학/데이터' }, { key: 'robot', label: '로봇/기계' }, { key: 'energy', label: '에너지/신소재' }] },
+  health:   { label: '건강',            subs: [{ key: 'disease', label: '질병/감염' }, { key: 'medical', label: '의료/병원' }, { key: 'fitness', label: '운동/피트니스' }, { key: 'diet', label: '다이어트' }, { key: 'mental', label: '정신건강' }, { key: 'beauty', label: '뷰티/성형' }, { key: 'nutrition', label: '영양/건강식품' }, { key: 'pharma', label: '제약/바이오' }] },
+  world:    { label: '세계',            subs: [{ key: 'us', label: '미국' }, { key: 'china', label: '중국' }, { key: 'japan', label: '일본' }, { key: 'europe', label: '유럽' }, { key: 'middleeast', label: '중동' }, { key: 'asia', label: '동남아/인도' }, { key: 'russia', label: '러시아' }, { key: 'world_economy', label: '세계경제' }, { key: 'world_affairs', label: '국제정세' }] },
+  society:  { label: '사회',            subs: [{ key: 'education', label: '교육' }, { key: 'crime', label: '범죄/사건사고' }, { key: 'welfare', label: '복지/연금' }, { key: 'labor', label: '노동/파업' }, { key: 'disaster', label: '재난/재해' }, { key: 'human_rights', label: '인권' }, { key: 'media', label: '미디어/언론' }, { key: 'religion', label: '종교' }, { key: 'local', label: '지역/지방' }] },
+  culture:  { label: '문화',            subs: [{ key: 'movie', label: '영화' }, { key: 'music', label: '음악' }, { key: 'art', label: '미술/전시' }, { key: 'book', label: '도서' }, { key: 'travel', label: '여행' }, { key: 'food', label: '음식/맛집' }, { key: 'fashion', label: '패션' }, { key: 'game', label: '게임' }, { key: 'performance', label: '공연/뮤지컬' }] },
+  entertain:{ label: '엔터테인먼트',     subs: [{ key: 'kpop', label: 'K-pop' }, { key: 'drama', label: '드라마' }, { key: 'variety', label: '예능' }, { key: 'actor', label: '배우' }, { key: 'kmusic', label: '가요' }, { key: 'overseas', label: '해외연예' }] },
 };
 
 // '전체' 칩은 항상 고정
@@ -65,8 +66,9 @@ function FeedPage() {
               .map(t => ({
                 id: t,
                 label: TOPIC_META[t].label,
+                // subTopics(영문 key 배열)에 있는 것만 필터, 없으면 전체 표시
                 subs: subTopics.length > 0
-                  ? TOPIC_META[t].subs.filter(s => subTopics.includes(s))
+                  ? TOPIC_META[t].subs.filter(s => subTopics.includes(s.key))
                   : TOPIC_META[t].subs,
               })),
           ];
@@ -641,13 +643,13 @@ function FeedPage() {
               >
                 <div className="flex gap-2 overflow-x-auto pt-3 pb-1 no-scrollbar">
                   {categories.find(c => c.id === activeTab)?.subs.map(sub => {
-                    const isActive = activeSubTabs.includes(sub);
+                    const isActive = activeSubTabs.includes(sub.key);
                     return (
                       <button
-                        key={sub}
+                        key={sub.key}
                         onClick={() => {
                           setActiveSubTabs(prev =>
-                            isActive ? prev.filter(s => s !== sub) : [...prev, sub]
+                            isActive ? prev.filter(s => s !== sub.key) : [...prev, sub.key]
                           );
                           setPage(1);
                           setArticles([]);
@@ -660,7 +662,7 @@ function FeedPage() {
                         }`}
                       >
                         {isActive && <span className="mr-1">✓</span>}
-                        {sub}
+                        {sub.label}
                       </button>
                     );
                   })}
