@@ -30,11 +30,16 @@ export default function ArticleDetailPage() {
     if (!localStorage.getItem('curio_access_token')) return;
     articlesApi.getArticleById(id)
       .then(res => {
-        setArticle(res.data?.article ?? res.data ?? null);
+        const article = res.data?.article ?? null;
+        // title 없으면 유효한 기사 데이터가 아님
+        if (!article?.title) setNotFound(true);
+        else setArticle(article);
       })
       .catch(err => {
-        if (err?.response?.status === 404) setNotFound(true);
-        else console.error('[ArticleDetailPage] 로딩 실패:', err.message);
+        setNotFound(true);
+        if (err?.response?.status !== 404) {
+          console.error('[ArticleDetailPage] 로딩 실패:', err.response?.status, err.message);
+        }
       })
       .finally(() => setLoading(false));
   }, [id]);

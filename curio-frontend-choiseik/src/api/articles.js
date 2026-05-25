@@ -133,6 +133,24 @@ export const articlesApi = {
   // 14. 단일 기사 상세 조회 (뉴스레터 딥링크용)
   getArticleById: async (id) => {
     const response = await apiClient.get(`/api/news/${id}`);
-    return response;
+    // 백엔드 응답 형식이 다양할 수 있으므로 정규화
+    // { article: {...} } | { data: { article: {...} } } | { data: {...} } | {...}
+    const raw =
+      response.data?.article ??
+      response.data?.data?.article ??
+      response.data?.data ??
+      (response.data && typeof response.data === 'object' && !Array.isArray(response.data)
+        ? response.data
+        : null);
+    return {
+      data: {
+        article: raw ? {
+          ...raw,
+          ai_summary: raw.ai_summary ?? raw.summary ?? null,
+          ai_insight: raw.ai_insight ?? raw.insight ?? null,
+          thumbnail_url: raw.thumbnail_url || raw.image_url || DEFAULT_IMAGE,
+        } : null,
+      },
+    };
   },
 };
