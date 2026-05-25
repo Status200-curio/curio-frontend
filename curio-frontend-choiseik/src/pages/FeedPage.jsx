@@ -84,18 +84,37 @@ function FeedPage() {
       });
   }, []);
 
-  // ★ 알림(Notification) 상태 관리 추가
+  // ★ 알림(Notification) 상태 관리 — localStorage로 읽음 상태 유지
+  const STATIC_NOTIFICATIONS = [
+    { id: 1, type: 'audio', message: '오늘의 AI 오디오 브리핑이 준비되었습니다.', time: '10분 전' },
+    { id: 2, type: 'update', message: '관심 카테고리(경제)에 새로운 핵심 기사가 추가되었습니다.', time: '1시간 전' },
+    { id: 3, type: 'badge', message: '연속 7일 출석을 달성하셨습니다! 🔥', time: '1일 전' },
+  ];
+
+  const getReadIds = () => {
+    try { return JSON.parse(localStorage.getItem('curio_read_notif_ids') || '[]'); }
+    catch { return []; }
+  };
+
   const [showNotifications, setShowNotifications] = useState(false);
-  const [notifications, setNotifications] = useState([
-    { id: 1, type: 'audio', message: '오늘의 AI 오디오 브리핑이 준비되었습니다.', time: '10분 전', isRead: false },
-    { id: 2, type: 'update', message: '관심 카테고리(경제)에 새로운 핵심 기사가 추가되었습니다.', time: '1시간 전', isRead: false },
-    { id: 3, type: 'badge', message: '연속 7일 출석을 달성하셨습니다! 🔥', time: '1일 전', isRead: true }
-  ]);
+  const [readIds, setReadIds] = useState(getReadIds);
+
+  const notifications = STATIC_NOTIFICATIONS.map(n => ({ ...n, isRead: readIds.includes(n.id) }));
   const unreadCount = notifications.filter(n => !n.isRead).length;
 
-  // 알림 모두 읽음 처리 함수
+  const markAsRead = (id) => {
+    setReadIds(prev => {
+      if (prev.includes(id)) return prev;
+      const next = [...prev, id];
+      localStorage.setItem('curio_read_notif_ids', JSON.stringify(next));
+      return next;
+    });
+  };
+
   const markAllAsRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, isRead: true })));
+    const allIds = STATIC_NOTIFICATIONS.map(n => n.id);
+    localStorage.setItem('curio_read_notif_ids', JSON.stringify(allIds));
+    setReadIds(allIds);
   };
 
   // 알림 아이콘 선택 함수
@@ -430,9 +449,7 @@ function FeedPage() {
                           <div
                             key={notification.id}
                             className={`p-4 border-b border-slate-50 dark:border-slate-700/50 flex gap-3 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition cursor-pointer ${!notification.isRead ? 'bg-blue-50/30 dark:bg-blue-900/20' : ''}`}
-                            onClick={() => {
-                              setNotifications(notifications.map(n => n.id === notification.id ? { ...n, isRead: true } : n));
-                            }}
+                            onClick={() => markAsRead(notification.id)}
                           >
                             <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${!notification.isRead ? 'bg-white dark:bg-slate-700 shadow-sm border border-slate-100 dark:border-slate-600' : 'bg-slate-100 dark:bg-slate-700'}`}>
                               {getNotificationIcon(notification.type)}
@@ -453,7 +470,12 @@ function FeedPage() {
                       )}
                     </div>
                     <div className="p-3 bg-slate-50 dark:bg-slate-900 text-center border-t border-slate-100 dark:border-slate-700">
-                      <button className="text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">모든 알림 보기</button>
+                      <button
+                        onClick={() => { markAllAsRead(); setShowNotifications(false); }}
+                        className="text-xs font-bold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                      >
+                        모두 읽음으로 표시
+                      </button>
                     </div>
                   </motion.div>
                 )}
