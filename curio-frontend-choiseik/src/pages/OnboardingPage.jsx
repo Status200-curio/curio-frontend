@@ -3,96 +3,130 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import apiClient from "../api/client";
 
-// [API 명세 8.2] 카테고리 코드 및 한국어 매핑
+// [API 명세 8.2] 카테고리 코드 및 한국어 매핑 (백엔드 Article.topic 값과 일치)
 const TOPIC_LIST = [
-  { id: "ai", label: "AI / 기술", icon: "💻" },
-  { id: "economy", label: "경제", icon: "📈" },
-  { id: "sports", label: "스포츠", icon: "⚽" },
-  { id: "culture", label: "문화", icon: "🎨" },
-  { id: "politics", label: "정치", icon: "🏛️" },
-  { id: "science", label: "과학", icon: "🔬" },
-  { id: "health", label: "건강", icon: "🏥" },
-  { id: "global", label: "국제", icon: "🌍" },
-  { id: "society", label: "사회", icon: "🤝" },
-  { id: "entertainment", label: "연예", icon: "🎬" },
+  { id: "ai",       label: "AI / 기술", icon: "💻" },
+  { id: "economy",  label: "경제",      icon: "📈" },
+  { id: "sports",   label: "스포츠",    icon: "⚽" },
+  { id: "culture",  label: "문화",      icon: "🎨" },
+  { id: "politics", label: "정치",      icon: "🏛️" },
+  { id: "science",  label: "과학",      icon: "🔬" },
+  { id: "health",   label: "건강",      icon: "🏥" },
+  { id: "world",    label: "국제",      icon: "🌍" },
+  { id: "society",  label: "사회",      icon: "🤝" },
+  { id: "entertain",label: "연예",      icon: "🎬" },
 ];
 
+// 세부 카테고리 — ID는 백엔드 Article.tags 키와 일치해야 함
 const SUB_TOPICS = {
   ai: [
-    { id: "ai_ml", label: "AI/머신러닝" },
-    { id: "ai_semiconductor", label: "반도체" },
-    { id: "ai_smartphone", label: "스마트폰" },
-    { id: "ai_software", label: "소프트웨어" },
-    { id: "ai_game", label: "게임" },
-    { id: "ai_space", label: "우주/항공" },
+    { id: "llm",          label: "AI/머신러닝" },
+    { id: "semiconductor", label: "반도체" },
+    { id: "mobile",       label: "스마트폰" },
+    { id: "security",     label: "보안" },
+    { id: "startup",      label: "소프트웨어/스타트업" },
+    { id: "cloud",        label: "클라우드" },
+    { id: "internet",     label: "인터넷/SNS" },
+    { id: "ev",           label: "전기차/자율주행" },
+    { id: "game_tech",    label: "게임" },
   ],
   economy: [
-    { id: "eco_stock", label: "주식" },
-    { id: "eco_realestate", label: "부동산" },
-    { id: "eco_crypto", label: "암호화폐" },
-    { id: "eco_exchange", label: "환율" },
-    { id: "eco_startup", label: "창업/스타트업" },
-    { id: "eco_price", label: "소비/물가" },
+    { id: "stock",        label: "주식" },
+    { id: "realestate",   label: "부동산" },
+    { id: "crypto",       label: "암호화폐" },
+    { id: "finance",      label: "금융/은행" },
+    { id: "trade",        label: "무역/수출" },
+    { id: "company",      label: "기업/대기업" },
+    { id: "exchange",     label: "환율" },
+    { id: "employment",   label: "취업/고용" },
   ],
   sports: [
-    { id: "sp_soccer", label: "축구" },
-    { id: "sp_baseball", label: "야구" },
-    { id: "sp_volleyball", label: "배구" },
-    { id: "sp_basketball", label: "농구" },
-    { id: "sp_tennis", label: "테니스" },
-    { id: "sp_golf", label: "골프" },
-    { id: "sp_esports", label: "e스포츠" },
+    { id: "football",     label: "축구" },
+    { id: "baseball",     label: "야구" },
+    { id: "basketball",   label: "농구" },
+    { id: "volleyball",   label: "배구" },
+    { id: "tennis",       label: "테니스" },
+    { id: "golf",         label: "골프" },
+    { id: "esports",      label: "e스포츠" },
+    { id: "badminton",    label: "배드민턴" },
+    { id: "tabletennis",  label: "탁구" },
+    { id: "swimming",     label: "수영" },
+    { id: "mma",          label: "격투기/UFC" },
+    { id: "motorsports",  label: "모터스포츠/F1" },
+    { id: "boxing",       label: "복싱" },
+    { id: "taekwondo",    label: "태권도" },
+    { id: "judo",         label: "유도" },
+    { id: "archery",      label: "양궁" },
+    { id: "fencing",      label: "펜싱" },
   ],
   culture: [
-    { id: "cu_movie", label: "영화" },
-    { id: "cu_music", label: "음악" },
-    { id: "cu_art", label: "미술/전시" },
-    { id: "cu_book", label: "책/문학" },
-    { id: "cu_fashion", label: "패션" },
-    { id: "cu_food", label: "음식" },
+    { id: "movie",        label: "영화" },
+    { id: "music",        label: "음악" },
+    { id: "art",          label: "미술/전시" },
+    { id: "book",         label: "도서" },
+    { id: "travel",       label: "여행" },
+    { id: "food",         label: "음식/맛집" },
+    { id: "fashion",      label: "패션" },
+    { id: "game",         label: "게임" },
+    { id: "performance",  label: "공연/뮤지컬" },
   ],
   politics: [
-    { id: "po_domestic", label: "국내정치" },
-    { id: "po_election", label: "선거" },
-    { id: "po_diplomacy", label: "외교" },
-    { id: "po_law", label: "법/정책" },
-    { id: "po_defense", label: "국방" },
+    { id: "domestic",     label: "국내정치" },
+    { id: "election",     label: "선거" },
+    { id: "northkorea",   label: "북한" },
+    { id: "foreign",      label: "외교" },
+    { id: "policy",       label: "법/정책" },
+    { id: "judiciary",    label: "검찰/사법" },
   ],
   science: [
-    { id: "sc_space", label: "우주" },
-    { id: "sc_environment", label: "환경" },
-    { id: "sc_biology", label: "생물학" },
-    { id: "sc_physics", label: "물리학" },
-    { id: "sc_chemistry", label: "화학" },
+    { id: "space",        label: "우주" },
+    { id: "environment",  label: "환경/기후" },
+    { id: "biology",      label: "생명과학" },
+    { id: "physics",      label: "물리/화학" },
+    { id: "medicine",     label: "의학연구" },
+    { id: "math",         label: "수학/데이터" },
+    { id: "robot",        label: "로봇/기계" },
+    { id: "energy",       label: "에너지/신소재" },
   ],
   health: [
-    { id: "he_medicine", label: "의학" },
-    { id: "he_fitness", label: "운동/피트니스" },
-    { id: "he_mental", label: "정신건강" },
-    { id: "he_diet", label: "다이어트" },
-    { id: "he_policy", label: "의료정책" },
+    { id: "disease",      label: "질병/감염" },
+    { id: "medical",      label: "의료/병원" },
+    { id: "fitness",      label: "운동/피트니스" },
+    { id: "diet",         label: "다이어트" },
+    { id: "mental",       label: "정신건강" },
+    { id: "beauty",       label: "뷰티/성형" },
+    { id: "nutrition",    label: "영양/건강식품" },
+    { id: "pharma",       label: "제약/바이오" },
   ],
-  global: [
-    { id: "gl_us", label: "미국" },
-    { id: "gl_europe", label: "유럽" },
-    { id: "gl_china", label: "중국" },
-    { id: "gl_japan", label: "일본" },
-    { id: "gl_middleeast", label: "중동" },
-    { id: "gl_asia", label: "동남아" },
+  world: [
+    { id: "us",           label: "미국" },
+    { id: "china",        label: "중국" },
+    { id: "japan",        label: "일본" },
+    { id: "europe",       label: "유럽" },
+    { id: "middleeast",   label: "중동" },
+    { id: "asia",         label: "동남아/인도" },
+    { id: "russia",       label: "러시아" },
+    { id: "world_economy", label: "세계경제" },
+    { id: "world_affairs", label: "국제정세" },
   ],
   society: [
-    { id: "so_education", label: "교육" },
-    { id: "so_welfare", label: "복지" },
-    { id: "so_crime", label: "범죄" },
-    { id: "so_environment", label: "환경" },
-    { id: "so_rights", label: "인권" },
+    { id: "education",    label: "교육" },
+    { id: "crime",        label: "범죄/사건사고" },
+    { id: "welfare",      label: "복지/연금" },
+    { id: "labor",        label: "노동/파업" },
+    { id: "disaster",     label: "재난/재해" },
+    { id: "human_rights", label: "인권" },
+    { id: "media",        label: "미디어/언론" },
+    { id: "religion",     label: "종교" },
+    { id: "local",        label: "지역/지방" },
   ],
-  entertainment: [
-    { id: "en_kpop", label: "K-pop" },
-    { id: "en_drama", label: "드라마" },
-    { id: "en_movie", label: "영화" },
-    { id: "en_variety", label: "예능" },
-    { id: "en_youtube", label: "유튜버" },
+  entertain: [
+    { id: "kpop",         label: "K-pop" },
+    { id: "drama",        label: "드라마" },
+    { id: "variety",      label: "예능" },
+    { id: "actor",        label: "배우" },
+    { id: "kmusic",       label: "가요" },
+    { id: "overseas",     label: "해외연예" },
   ],
 };
 
@@ -100,6 +134,8 @@ function OnboardingPage() {
   const navigate = useNavigate();
   const [selectedTopics, setSelectedTopics] = useState([]);
   const [selectedSubTopics, setSelectedSubTopics] = useState({});
+  const [customSubs, setCustomSubs] = useState([]);
+  const [customSubInput, setCustomSubInput] = useState('');
   const [keywordInput, setKeywordInput] = useState("");
 
   // 메인 카테고리 토글
@@ -133,20 +169,17 @@ function OnboardingPage() {
       .map((k) => k.trim())
       .filter((k) => k.length > 0);
 
-    // 세부 카테고리를 keywords에 병합 (백엔드 keywords 필드로 전달)
-    const allSubTopicLabels = Object.values(selectedSubTopics).flat().map((subId) => {
-      for (const subs of Object.values(SUB_TOPICS)) {
-        const found = subs.find((s) => s.id === subId);
-        if (found) return found.label;
-      }
-      return subId;
-    });
-    const mergedKeywords = [...new Set([...keywords, ...allSubTopicLabels])];
+    // 선택된 세부 카테고리 ID 목록 (사전 정의된 것만 sub_topics로)
+    const allSubTopicIds = Object.values(selectedSubTopics).flat();
+
+    // 커스텀 직접 입력 + 텍스트 키워드 입력 → keywords로 합산
+    const mergedKeywords = [...new Set([...keywords, ...customSubs])];
 
     try {
       await apiClient.put('/api/user/preferences', {
         topics: selectedTopics,
         keywords: mergedKeywords,
+        sub_topics: allSubTopicIds,
       });
       navigate("/feed");
     } catch (error) {
@@ -242,6 +275,48 @@ function OnboardingPage() {
                   </div>
                 );
               })}
+
+              {/* 직접 입력 */}
+              <div className="border-t border-slate-200 pt-5">
+                <p className="text-sm font-semibold text-slate-600 mb-3">원하는 항목이 없으면 직접 입력해보세요</p>
+                <div className="flex gap-2 mb-3">
+                  <input
+                    type="text"
+                    value={customSubInput}
+                    onChange={e => setCustomSubInput(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') {
+                        const v = customSubInput.trim();
+                        if (v && !customSubs.includes(v)) setCustomSubs(prev => [...prev, v]);
+                        setCustomSubInput('');
+                      }
+                    }}
+                    placeholder="예: 반도체, 챗GPT ..."
+                    className="flex-1 px-4 py-2 rounded-xl text-sm border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-400 transition"
+                  />
+                  <button
+                    onClick={() => {
+                      const v = customSubInput.trim();
+                      if (v && !customSubs.includes(v)) setCustomSubs(prev => [...prev, v]);
+                      setCustomSubInput('');
+                    }}
+                    disabled={!customSubInput.trim()}
+                    className="px-4 py-2 rounded-xl text-sm font-bold bg-blue-600 text-white hover:bg-blue-700 transition disabled:opacity-40"
+                  >
+                    + 추가
+                  </button>
+                </div>
+                {customSubs.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {customSubs.map(tag => (
+                      <span key={tag} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold bg-indigo-600 text-white">
+                        {tag}
+                        <button onClick={() => setCustomSubs(prev => prev.filter(t => t !== tag))} className="hover:text-indigo-200 transition">✕</button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}

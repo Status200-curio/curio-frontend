@@ -1,6 +1,7 @@
 // src/pages/AuthCallbackPage.jsx
 import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { authApi } from '../api/auth';
 
 function AuthCallbackPage() {
   const navigate = useNavigate();
@@ -11,20 +12,20 @@ function AuthCallbackPage() {
     handled.current = true;
 
     const params = new URLSearchParams(window.location.search);
-    const accessToken = params.get('access_token');
-    const refreshToken = params.get('refresh_token');
-    const isNewUser = params.get('is_new_user') === 'true';
+    const access_token = params.get('access_token');
+    const refresh_token = params.get('refresh_token');
+    const is_new_user = params.get('is_new_user');
     const error = params.get('error');
 
-    if (error || !accessToken) {
+    if (error || !access_token) {
       navigate('/');
       return;
     }
 
-    localStorage.setItem('curio_access_token', accessToken);
-    localStorage.setItem('curio_refresh_token', refreshToken);
+    localStorage.setItem('curio_access_token', access_token);
+    localStorage.setItem('curio_refresh_token', refresh_token);
 
-    if (isNewUser) {
+    if (is_new_user === 'true') {
       navigate('/onboarding');
     } else {
       navigate('/feed');

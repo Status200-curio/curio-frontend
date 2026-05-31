@@ -29,6 +29,12 @@ export const authApi = {
     return response.data;
   },
 
+  // Google OAuth — code를 백엔드로 전달해 토큰 교환
+  googleLogin: async (code) => {
+    const response = await apiClient.post('/api/auth/google', { code });
+    return response.data;
+  },
+
   // 로그아웃 (서버의 refresh_token 폐기용)
   logout: async () => {
     const response = await apiClient.post('/api/auth/logout');

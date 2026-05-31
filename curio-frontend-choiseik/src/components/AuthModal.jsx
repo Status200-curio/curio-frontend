@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authApi } from '../api/auth';
 
-function AuthModal({ isOpen, onClose }) {
+function AuthModal({ isOpen, onClose, redirectTo = null }) {
   const navigate = useNavigate();
   
   // mode: 'select'(초기화면), 'login'(로그인), 'register'(회원가입)
@@ -19,9 +19,12 @@ function AuthModal({ isOpen, onClose }) {
 
   // Google 로그인 핸들러
   const handleGoogleLogin = () => {
+    const backendUrl = window.location.hostname === 'localhost'
+      ? 'http://localhost:8000'
+      : 'https://curio-backend-production.up.railway.app';
     const params = new URLSearchParams({
       client_id: '738331615347-5t6nrrl5qebndperpmkpgng10pp4go38.apps.googleusercontent.com',
-      redirect_uri: 'http://localhost:8000/api/auth/google/callback',
+      redirect_uri: `${backendUrl}/api/auth/google/callback`,
       response_type: 'code',
       scope: 'email profile',
       access_type: 'offline',
@@ -50,6 +53,8 @@ function AuthModal({ isOpen, onClose }) {
       onClose();
       if (!user.is_onboarded) {
         navigate('/onboarding');
+      } else if (redirectTo) {
+        navigate(redirectTo);
       } else {
         navigate('/feed');
       }

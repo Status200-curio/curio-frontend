@@ -2,6 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+/* 다크/라이트 모드 전환 시 색상이 부드럽게 바뀌도록 전역 transition 적용 */
+html {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* 컴포넌트 레벨: 배경·텍스트·테두리 색상 전환 */
+body,
+*,
+*::before,
+*::after {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-duration: 300ms;
+  transition-timing-function: ease;
+}
+
 /* 스크롤바 숨기기 (FeedPage 카테고리 탭용) */
 @layer utilities {
   .no-scrollbar::-webkit-scrollbar {
