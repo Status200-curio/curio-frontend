@@ -80,7 +80,7 @@ export default function TopicRecommendations({ isDarkMode }) {
           const timeStr = rec.read_time ?? rec.time_str;
           const meta = TOPIC_META[topic] ?? { label: topic, icon: '📰' };
           const isAdding = addingTopic === topic;
-          const thumbnail = TOPIC_IMAGES[article?.topic] || DEFAULT_IMAGE;
+          const thumbnail = article?.thumbnail_url || article?.image_url || TOPIC_IMAGES[article?.topic] || DEFAULT_IMAGE;
 
           return (
             <div
